@@ -7,8 +7,8 @@ const router = express.Router();
 const saltRounds = 10;
 
 router.post("/signup", (req, res, next) => {
-  const { email, password, name } = req.body;
-  if (email === "" || password === "" || name === "") {
+  const { email, password, name, userName } = req.body;
+  if (email === "" || password === "" || name === "" || userName === "") {
     res.status(400).json({ message: "Provide email, password and name" });
     return;
   }
@@ -28,20 +28,32 @@ router.post("/signup", (req, res, next) => {
     return;
   }
 
-  User.findOne({ email })
-    .then((foundUser) => {
-      if (foundUser) {
-        res.status(400).json({ message: "User already exists." });
+  const userNameRegex = /^[a-zA-Z][a-zA-Z0-9_]{2,19}$/;
+  if (!userNameRegex.test(userName)) {
+    res.status(400).json({
+      message:
+        "Username can only contain letters, numbers, underscores and must be between 3 and 20 characters",
+    });
+    return;
+  }
+  Promise.all([User.findOne({ email }), User.findOne({ userName })])
+    .then(([foundUserMail, foundUserName]) => {
+      if (foundUserMail) {
+        res.status(400).json({ message: "Email already registered" });
+        return;
+      }
+      if (foundUserName) {
+        res.status(400).json({ message: "Username already taken" });
         return;
       }
 
       const salt = bcrypt.genSaltSync(saltRounds);
       const hashedPassword = bcrypt.hashSync(password, salt);
-      return User.create({ email, password: hashedPassword, name });
+      return User.create({ email, password: hashedPassword, name, userName });
     })
     .then((createdUser) => {
-      const { email, name, _id } = createdUser;
-      const user = { email, name, _id };
+      const { email, name, _id, userName } = createdUser;
+      const user = { email, name, _id, userName };
       res.status(201).json({ user: user });
     })
     .catch((err) => {

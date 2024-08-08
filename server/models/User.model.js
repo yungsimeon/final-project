@@ -15,7 +15,13 @@ const userSchema = new Schema(
     },
     name: {
       type: String,
-      required: [true],
+      required: true,
+    },
+
+    userName: {
+      type: String,
+      required: true,
+      unique: true,
     },
 
     followers: [
@@ -47,6 +53,11 @@ const userSchema = new Schema(
     },
 
     bio: {
+      type: String,
+      default: "",
+    },
+
+    link: {
       type: String,
       default: "",
     },
