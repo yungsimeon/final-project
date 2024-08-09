@@ -21,10 +21,13 @@ const authRouter = require("./routes/auth.routes");
 app.use("/auth", authRouter);
 
 const userRouter = require("./routes/users.routes");
-app.use("/api", isAuthenticated, userRouter);
+app.use("/api/users", isAuthenticated, userRouter);
 
 const postRouter = require("./routes/posts.routes");
 app.use("/api/posts", isAuthenticated, postRouter);
+
+const notificationRouter = require("./routes/notification.routes");
+app.use("/api/notifications", isAuthenticated, notificationRouter);
 
 require("./error-handling")(app);
 

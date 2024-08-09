@@ -4,20 +4,16 @@ const cloudinary = require("cloudinary").v2;
 const User = require("../models/User.model");
 const Notification = require("../models/Notification.model");
 
-router.get("/users/:userId", (req, res) => {
-  const { userId } = req.params;
-
-  User.findById(userId)
-    .then((user) => {
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-      res.status(200).json(user);
-    })
-    .catch((err) => {
-      console.error(err);
-      res.status(500).json({ message: "Error fetching user" });
-    });
+router.get("/profile/:username", async (req, res) => {
+  try {
+    const { username: userName } = req.params;
+    const user = await User.findOne({ userName }).select("-password");
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.status(200).json(user);
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ message: "Error fetching user profile" });
+  }
 });
 
 router.post("/follow/:userId", (req, res) => {
