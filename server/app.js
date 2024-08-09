@@ -23,6 +23,9 @@ app.use("/auth", authRouter);
 const userRouter = require("./routes/users.routes");
 app.use("/api", isAuthenticated, userRouter);
 
+const postRouter = require("./routes/posts.routes");
+app.use("/api/posts", isAuthenticated, postRouter);
+
 require("./error-handling")(app);
 
 module.exports = app;
