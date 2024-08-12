@@ -5,7 +5,10 @@ const cloudinary = require("cloudinary").v2;
 const Post = require("../models/Post.model");
 const mongoose = require("mongoose");
 
-router.post("/create", async (req, res) => {
+// post : localhost:5005/api/posts = post new post
+// get : localhost:5005/api/posts = get all posts
+
+router.post("/", async (req, res) => {
   try {
     const { text } = req.body;
     let { img } = req.body;
@@ -33,7 +36,7 @@ router.post("/create", async (req, res) => {
   }
 });
 
-router.get("/all", async (req, res) => {
+router.get("/", async (req, res) => {
   try {
     const posts = await Post.find()
       .sort({ createdAt: -1 })
