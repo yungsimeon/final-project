@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import toast from "react-hot-toast";
 
 import EggLogo from "../../assets/logo/egg2.png";
 
@@ -34,7 +33,6 @@ const LoginPage = () => {
         const data = await res.json();
         if (!res.ok) throw new Error(data.message);
         if (data.authToken) {
-          // Store the token in localStorage
           localStorage.setItem("authToken", data.authToken);
         } else {
           console.error("Token not received");
