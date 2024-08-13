@@ -1,7 +1,7 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const { isAuthenticated } = require("./../middleware/jwt.middleware.js"); // <== IMPORT
+const { isAuthenticated } = require("./../middleware/jwt.middleware.js");
 const User = require("../models/User.model");
 const router = express.Router();
 const saltRounds = 10;
@@ -9,42 +9,38 @@ const saltRounds = 10;
 router.post("/signup", (req, res, next) => {
   const { email, password, name, userName } = req.body;
   if (email === "" || password === "" || name === "" || userName === "") {
-    res.status(400).json({ message: "Provide email, password and name" });
-    return;
+    return res
+      .status(400)
+      .json({ message: "Provide email, password and name" });
   }
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
   if (!emailRegex.test(email)) {
-    res.status(400).json({ message: "Provide a valid email address." });
-    return;
+    return res.status(400).json({ message: "Provide a valid email address." });
   }
 
   const passwordRegex = /(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{6,}/;
   if (!passwordRegex.test(password)) {
-    res.status(400).json({
+    return res.status(400).json({
       message:
         "Password must have at least 6 characters and contain at least one number, one lowercase and one uppercase letter.",
     });
-    return;
   }
 
   const userNameRegex = /^[a-zA-Z][a-zA-Z0-9_]{2,19}$/;
   if (!userNameRegex.test(userName)) {
-    res.status(400).json({
+    return res.status(400).json({
       message:
         "Username can only contain letters, numbers, underscores and must be between 3 and 20 characters",
     });
-    return;
   }
   Promise.all([User.findOne({ email }), User.findOne({ userName })])
     .then(([foundUserMail, foundUserName]) => {
       if (foundUserMail) {
-        res.status(400).json({ message: "Email already registered" });
-        return;
+        return res.status(400).json({ message: "Email already registered" });
       }
       if (foundUserName) {
-        res.status(400).json({ message: "Username already taken" });
-        return;
+        return res.status(400).json({ message: "Username already taken" });
       }
 
       const salt = bcrypt.genSaltSync(saltRounds);
@@ -54,11 +50,13 @@ router.post("/signup", (req, res, next) => {
     .then((createdUser) => {
       const { email, name, _id, userName } = createdUser;
       const user = { email, name, _id, userName };
-      res.status(201).json({ user: user });
+      return res.status(201).json({ user: user });
     })
     .catch((err) => {
       console.log(err);
-      res.status(500).json({ message: "Internal Server Error" });
+      if (!res.headersSent) {
+        return res.status(500).json({ message: "Internal Server Error" });
+      }
     });
 });
 
@@ -92,9 +90,14 @@ router.post("/login", (req, res, next) => {
     .catch((err) => res.status(500).json({ message: "Internal Server Error" }));
 });
 
-router.get("/verify", isAuthenticated, (req, res, next) => {
-  console.log(`req.payload`, req.payload);
-  res.status(200).json(req.payload);
+router.get("/verify", isAuthenticated, async (req, res) => {
+  try {
+    const user = await User.findById(req.payload._id).select("-password");
+    res.status(200).json(user);
+  } catch (error) {
+    console.log("Error verifying User", error.message);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
 });
 
 module.exports = router;
