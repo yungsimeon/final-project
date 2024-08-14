@@ -3,6 +3,7 @@ const bcrypt = require("bcryptjs");
 const cloudinary = require("cloudinary").v2;
 const User = require("../models/User.model");
 const Notification = require("../models/Notification.model");
+const { Types } = require("mongoose");
 
 router.get("/profile/:username", async (req, res) => {
   try {
@@ -70,15 +71,17 @@ router.post("/follow/:userId", (req, res) => {
 });
 
 router.get("/suggested", async (req, res) => {
+  const ObjectId = Types.ObjectId;
   try {
     const currentUserId = req.payload._id;
+    const currentUserObjectId = new ObjectId(currentUserId);
     const usersFollowedByMe = await User.findById(currentUserId).select(
       "following"
     );
     const users = await User.aggregate([
       {
         $match: {
-          _id: { $ne: currentUserId },
+          _id: { $ne: currentUserObjectId },
         },
       },
       { $sample: { size: 10 } },

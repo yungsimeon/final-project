@@ -5,9 +5,6 @@ const cloudinary = require("cloudinary").v2;
 const Post = require("../models/Post.model");
 const mongoose = require("mongoose");
 
-// post : localhost:5005/api/posts = post new post
-// get : localhost:5005/api/posts = get all posts
-
 router.post("/", async (req, res) => {
   try {
     const { text } = req.body;
@@ -66,7 +63,12 @@ router.post("/like/:id", async (req, res) => {
     if (userLikedPost) {
       await Post.updateOne({ _id: postId }, { $pull: { likes: userId } });
       await User.updateOne({ _id: userId }, { $pull: { likedPosts: postId } });
-      res.status(200).json({ message: "Post unliked" });
+
+      const updatedLikes = post.likes.filter((id) => {
+        id.toString() !== userId.toString();
+      });
+
+      res.status(200).json(updatedLikes);
     } else {
       post.likes.push(userId);
       await User.updateOne({ _id: userId }, { $push: { likedPosts: postId } });
@@ -77,7 +79,8 @@ router.post("/like/:id", async (req, res) => {
         type: "like",
       });
       await notification.save();
-      res.status(200).json({ message: "Post liked" });
+      const updatedLikes = post.likes;
+      res.status(200).json(updatedLikes);
     }
   } catch (err) {
     console.log(err);
