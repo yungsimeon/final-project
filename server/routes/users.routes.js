@@ -145,6 +145,7 @@ router.post("/update", async (req, res) => {
         );
       }
       const uploadedResponse = await cloudinary.uploader.upload(userIcon);
+      console.log("uploaded response", uploadedResponse);
       userIcon = uploadedResponse.secure_url;
     }
 

@@ -1,7 +1,7 @@
 import { toast } from "react-hot-toast";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
 
-const useFollow = () => {
+function useFollow() {
   const queryClient = useQueryClient();
   const { mutate: follow, isPending } = useMutation({
     mutationFn: async (userId) => {
@@ -34,5 +34,5 @@ const useFollow = () => {
     },
   });
   return { follow, isPending };
-};
+}
 export default useFollow;

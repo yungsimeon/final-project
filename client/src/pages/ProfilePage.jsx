@@ -1,10 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  QueryClient,
+} from "@tanstack/react-query";
+import toast from "react-hot-toast";
 
 import PostList from "../components/PostList";
 import ProfileHeaderSkeleton from "../components/ProfileHeaderSkeleton";
 import EditProfile from "../components/EditProfile";
+import useFollow from "../hooks/useFollow";
 
 import { POSTS } from "../utils/dummy";
 import { formatMemberSinceDate } from "../utils/date";
@@ -13,6 +20,7 @@ import { FaArrowLeft } from "react-icons/fa6";
 import { IoCalendarOutline } from "react-icons/io5";
 import { FaLink } from "react-icons/fa";
 import { MdEdit } from "react-icons/md";
+import LoadingSpinner from "../components/LoadingSpinner";
 
 const ProfilePage = () => {
   const [userCover, setuserCover] = useState(null);
@@ -21,8 +29,12 @@ const ProfilePage = () => {
 
   const userCoverRef = useRef(null);
   const userIconRef = useRef(null);
-  const isMyProfile = true;
   const { username } = useParams();
+  const { follow, isPending } = useFollow();
+  const { data: authUser } = useQuery({
+    queryKey: ["authUser"],
+  });
+  const queryClient = useQueryClient();
 
   const {
     data: user,
@@ -30,7 +42,7 @@ const ProfilePage = () => {
     refetch,
     isRefetching,
   } = useQuery({
-    queryKey: ["user"],
+    queryKey: ["userProfile"],
     queryFn: async () => {
       try {
         const authToken = localStorage.getItem("authToken");
@@ -50,6 +62,41 @@ const ProfilePage = () => {
     },
   });
 
+  const { mutate: updateProfile, isPending: isUpdatingProfile } = useMutation({
+    mutationFn: async () => {
+      const authToken = localStorage.getItem("authToken");
+      try {
+        const res = await fetch("/api/users/update", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${authToken}`,
+          },
+          body: JSON.stringify({ userIcon, userCover }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.message);
+        }
+        return data;
+      } catch (error) {
+        throw new Error(error);
+      }
+    },
+    onSuccess: () => {
+      toast.success("Profile updated successfully");
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["authUser"] }),
+        queryClient.invalidateQueries({ queryKey: ["userProfile"] }),
+      ]);
+    },
+    onError: (error) => {
+      toast.error("Max file size 2mb");
+    },
+  });
+
+  const isMyProfile = authUser._id === user?._id;
+
   const handleImgChange = (e, state) => {
     const file = e.target.files[0];
     if (file) {
@@ -67,6 +114,7 @@ const ProfilePage = () => {
   }, [username, refetch]);
 
   const memberSinceDate = formatMemberSinceDate(user?.createdAt);
+  const amIFollowing = authUser?.following.includes(user?._id);
 
   return (
     <>
@@ -144,17 +192,23 @@ const ProfilePage = () => {
                 {!isMyProfile && (
                   <button
                     className="btn btn-outline rounded-full btn-sm"
-                    onClick={() => alert("Followed successfully")}
+                    onClick={() => follow(user?._id)}
                   >
-                    Follow
+                    {isPending && <LoadingSpinner size="sm" />}
+                    {!isPending && amIFollowing && "Unfollow"}
+                    {!isPending && !amIFollowing && "Follow"}
                   </button>
                 )}
                 {(userCover || userIcon) && (
                   <button
                     className="btn btn-primary rounded-full btn-sm text-white px-4 ml-2"
-                    onClick={() => alert("Profile updated successfully")}
+                    onClick={() => updateProfile()}
                   >
-                    Update
+                    {isUpdatingProfile ? (
+                      <LoadingSpinner size="sm" />
+                    ) : (
+                      "Update"
+                    )}
                   </button>
                 )}
               </div>

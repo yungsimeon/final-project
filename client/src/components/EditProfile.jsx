@@ -1,14 +1,56 @@
 import { useState } from "react";
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  QueryClient,
+} from "@tanstack/react-query";
+import toast from "react-hot-toast";
+import LoadingSpinner from "./LoadingSpinner";
 
 const EditProfile = () => {
+  const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
-    fullName: "",
-    username: "",
+    name: "",
+    userName: "",
     email: "",
     bio: "",
     link: "",
     newPassword: "",
     currentPassword: "",
+  });
+
+  const { mutate: updateProfile, isPending: isUpdatingProfile } = useMutation({
+    mutationFn: async () => {
+      const authToken = localStorage.getItem("authToken");
+      try {
+        const res = await fetch("/api/users/update", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${authToken}`,
+          },
+          body: JSON.stringify(formData),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.message);
+        }
+        return data;
+      } catch (error) {
+        throw new Error(error);
+      }
+    },
+    onSuccess: () => {
+      toast.success("Profile updated successfully");
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["authUser"] }),
+        queryClient.invalidateQueries({ queryKey: ["userProfile"] }),
+      ]);
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
   });
 
   const handleInputChange = (e) => {
@@ -32,7 +74,7 @@ const EditProfile = () => {
             className="flex flex-col gap-4"
             onSubmit={(e) => {
               e.preventDefault();
-              alert("Profile updated successfully");
+              updateProfile();
             }}
           >
             <div className="flex flex-wrap gap-2">
@@ -40,16 +82,16 @@ const EditProfile = () => {
                 type="text"
                 placeholder="Full Name"
                 className="flex-1 input border border-gray-700 rounded p-2 input-md"
-                value={formData.fullName}
-                name="fullName"
+                value={formData.name}
+                name="name"
                 onChange={handleInputChange}
               />
               <input
                 type="text"
                 placeholder="Username"
                 className="flex-1 input border border-gray-700 rounded p-2 input-md"
-                value={formData.username}
-                name="username"
+                value={formData.userName}
+                name="userName"
                 onChange={handleInputChange}
               />
             </div>
@@ -97,7 +139,7 @@ const EditProfile = () => {
               onChange={handleInputChange}
             />
             <button className="btn btn-primary rounded-full btn-sm text-white">
-              Update
+              {isUpdatingProfile ? <LoadingSpinner /> : "Update"}
             </button>
           </form>
         </div>

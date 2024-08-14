@@ -11,6 +11,7 @@ router.post("/", async (req, res) => {
     let { img } = req.body;
     const userId = req.payload._id;
     const user = await User.findById(userId);
+
     if (!user) return res.status(404).json({ message: "User not found" });
     if (!text && !img)
       return res.status(400).json({ message: "Post must have text or image" });
