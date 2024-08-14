@@ -23,8 +23,8 @@ import { MdEdit } from "react-icons/md";
 import LoadingSpinner from "../components/LoadingSpinner";
 
 const ProfilePage = () => {
-  const [userCover, setuserCover] = useState(null);
-  const [userIcon, setuserIcon] = useState(null);
+  const [userCover, setUserCover] = useState(null);
+  const [userIcon, setUserIcon] = useState(null);
   const [feedType, setFeedType] = useState("posts");
 
   const userCoverRef = useRef(null);
@@ -62,38 +62,39 @@ const ProfilePage = () => {
     },
   });
 
-  const { mutate: updateProfile, isPending: isUpdatingProfile } = useMutation({
-    mutationFn: async () => {
-      const authToken = localStorage.getItem("authToken");
-      try {
-        const res = await fetch("/api/users/update", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${authToken}`,
-          },
-          body: JSON.stringify({ userIcon, userCover }),
-        });
-        const data = await res.json();
-        if (!res.ok) {
-          throw new Error(data.message);
+  const { mutateAsync: updateProfile, isPending: isUpdatingProfile } =
+    useMutation({
+      mutationFn: async () => {
+        const authToken = localStorage.getItem("authToken");
+        try {
+          const res = await fetch("/api/users/update", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${authToken}`,
+            },
+            body: JSON.stringify({ userIcon, userCover }),
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            throw new Error(data.message);
+          }
+          return data;
+        } catch (error) {
+          throw new Error(error);
         }
-        return data;
-      } catch (error) {
-        throw new Error(error);
-      }
-    },
-    onSuccess: () => {
-      toast.success("Profile updated successfully");
-      Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["authUser"] }),
-        queryClient.invalidateQueries({ queryKey: ["userProfile"] }),
-      ]);
-    },
-    onError: (error) => {
-      toast.error("Max file size 2mb");
-    },
-  });
+      },
+      onSuccess: () => {
+        toast.success("Profile updated successfully");
+        Promise.all([
+          queryClient.invalidateQueries({ queryKey: ["authUser"] }),
+          queryClient.invalidateQueries({ queryKey: ["userProfile"] }),
+        ]);
+      },
+      onError: (error) => {
+        toast.error("Max file size 2mb");
+      },
+    });
 
   const isMyProfile = authUser._id === user?._id;
 
@@ -102,8 +103,8 @@ const ProfilePage = () => {
     if (file) {
       const reader = new FileReader();
       reader.onload = () => {
-        state === "userCover" && setuserCover(reader.result);
-        state === "userIcon" && setuserIcon(reader.result);
+        state === "userCover" && setUserCover(reader.result);
+        state === "userIcon" && setUserIcon(reader.result);
       };
       reader.readAsDataURL(file);
     }
@@ -202,7 +203,11 @@ const ProfilePage = () => {
                 {(userCover || userIcon) && (
                   <button
                     className="btn btn-primary rounded-full btn-sm text-white px-4 ml-2"
-                    onClick={() => updateProfile()}
+                    onClick={async () => {
+                      await updateProfile();
+                      setUserCover(null);
+                      setUserIcon(null);
+                    }}
                   >
                     {isUpdatingProfile ? (
                       <LoadingSpinner size="sm" />

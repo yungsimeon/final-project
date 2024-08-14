@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { IoCloseSharp } from "react-icons/io5";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
+import LoadingSpinner from "./LoadingSpinner";
 
 const CreatePost = () => {
   const [text, setText] = useState("");
@@ -112,7 +113,7 @@ const CreatePost = () => {
             onChange={handleImgChange}
           />
           <button className="btn btn-primary rounded-full btn-sm text-white px-4">
-            {isPending ? "Posting..." : "Post"}
+            {isPending ? <LoadingSpinner size="sm" /> : "Post"}
           </button>
         </div>
         {isError && <div className="text-red-500">{error.message}</div>}
