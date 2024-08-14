@@ -1,11 +1,13 @@
-import { useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import PostList from "../components/PostList";
 import ProfileHeaderSkeleton from "../components/ProfileHeaderSkeleton";
 import EditProfile from "../components/EditProfile";
 
 import { POSTS } from "../utils/dummy";
+import { formatMemberSinceDate } from "../utils/date";
 
 import { FaArrowLeft } from "react-icons/fa6";
 import { IoCalendarOutline } from "react-icons/io5";
@@ -13,57 +15,76 @@ import { FaLink } from "react-icons/fa";
 import { MdEdit } from "react-icons/md";
 
 const ProfilePage = () => {
-  const [coverImg, setCoverImg] = useState(null);
-  const [profileImg, setProfileImg] = useState(null);
+  const [userCover, setuserCover] = useState(null);
+  const [userIcon, setuserIcon] = useState(null);
   const [feedType, setFeedType] = useState("posts");
 
-  const coverImgRef = useRef(null);
-  const profileImgRef = useRef(null);
-
-  const isLoading = false;
+  const userCoverRef = useRef(null);
+  const userIconRef = useRef(null);
   const isMyProfile = true;
+  const { username } = useParams();
 
-  const user = {
-    _id: "1",
-    fullName: "John Doe",
-    username: "johndoe",
-    profileImg: "../../assets/avatars/Olaf.jpg",
-    coverImg: "../../assets/cover.png",
-    bio: "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
-    link: "https://youtube.com/@asaprogrammer_",
-    following: ["1", "2", "3"],
-    followers: ["1", "2", "3"],
-  };
+  const {
+    data: user,
+    isLoading,
+    refetch,
+    isRefetching,
+  } = useQuery({
+    queryKey: ["user"],
+    queryFn: async () => {
+      try {
+        const authToken = localStorage.getItem("authToken");
+        const res = await fetch(`/api/users/profile/${username}`, {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.message);
+        }
+        return data;
+      } catch (error) {
+        throw new Error(error);
+      }
+    },
+  });
 
   const handleImgChange = (e, state) => {
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
       reader.onload = () => {
-        state === "coverImg" && setCoverImg(reader.result);
-        state === "profileImg" && setProfileImg(reader.result);
+        state === "userCover" && setuserCover(reader.result);
+        state === "userIcon" && setuserIcon(reader.result);
       };
       reader.readAsDataURL(file);
     }
   };
 
+  useEffect(() => {
+    refetch();
+  }, [username, refetch]);
+
+  const memberSinceDate = formatMemberSinceDate(user?.createdAt);
+
   return (
     <>
       <div className="flex-[4_4_0]  border-r border-gray-700 min-h-screen ">
         {/* HEADER */}
-        {isLoading && <ProfileHeaderSkeleton />}
-        {!isLoading && !user && (
+        {(isLoading || isRefetching) && <ProfileHeaderSkeleton />}
+        {!isLoading && !isRefetching && !user && (
           <p className="text-center text-lg mt-4">User not found</p>
         )}
         <div className="flex flex-col">
-          {!isLoading && user && (
+          {!isLoading && !isRefetching && user && (
             <>
               <div className="flex gap-10 px-4 py-2 items-center">
                 <Link to="/">
                   <FaArrowLeft className="w-4 h-4" />
                 </Link>
                 <div className="flex flex-col">
-                  <p className="font-bold text-lg">{user?.fullName}</p>
+                  <p className="font-bold text-lg">{user?.name}</p>
                   <span className="text-sm text-slate-500">
                     {POSTS?.length} posts
                   </span>
@@ -72,14 +93,14 @@ const ProfilePage = () => {
               {/* COVER IMG */}
               <div className="relative group/cover">
                 <img
-                  src={coverImg || user?.coverImg || "/cover.png"}
+                  src={userCover || user?.userCover || "/cover.png"}
                   className="h-52 w-full object-cover"
                   alt="cover image"
                 />
                 {isMyProfile && (
                   <div
                     className="absolute top-2 right-2 rounded-full p-2 bg-gray-800 bg-opacity-75 cursor-pointer opacity-0 group-hover/cover:opacity-100 transition duration-200"
-                    onClick={() => coverImgRef.current.click()}
+                    onClick={() => userCoverRef.current.click()}
                   >
                     <MdEdit className="w-5 h-5 text-white" />
                   </div>
@@ -89,31 +110,29 @@ const ProfilePage = () => {
                   type="file"
                   hidden
                   accept="image/*"
-                  ref={coverImgRef}
-                  onChange={(e) => handleImgChange(e, "coverImg")}
+                  ref={userCoverRef}
+                  onChange={(e) => handleImgChange(e, "userCover")}
                 />
                 <input
                   type="file"
                   hidden
                   accept="image/*"
-                  ref={profileImgRef}
-                  onChange={(e) => handleImgChange(e, "profileImg")}
+                  ref={userIconRef}
+                  onChange={(e) => handleImgChange(e, "userIcon")}
                 />
                 {/* USER AVATAR */}
                 <div className="avatar absolute -bottom-16 left-4">
                   <div className="w-32 rounded-full relative group/avatar">
                     <img
                       src={
-                        profileImg ||
-                        user?.profileImg ||
-                        "/avatar-placeholder.png"
+                        userIcon || user?.userIcon || "/avatar-placeholder.png"
                       }
                     />
                     <div className="absolute top-5 right-3 p-1 bg-primary rounded-full group-hover/avatar:opacity-100 opacity-0 cursor-pointer">
                       {isMyProfile && (
                         <MdEdit
                           className="w-4 h-4 text-white"
-                          onClick={() => profileImgRef.current.click()}
+                          onClick={() => userIconRef.current.click()}
                         />
                       )}
                     </div>
@@ -130,7 +149,7 @@ const ProfilePage = () => {
                     Follow
                   </button>
                 )}
-                {(coverImg || profileImg) && (
+                {(userCover || userIcon) && (
                   <button
                     className="btn btn-primary rounded-full btn-sm text-white px-4 ml-2"
                     onClick={() => alert("Profile updated successfully")}
@@ -142,9 +161,9 @@ const ProfilePage = () => {
 
               <div className="flex flex-col gap-4 mt-14 px-4">
                 <div className="flex flex-col">
-                  <span className="font-bold text-lg">{user?.fullName}</span>
+                  <span className="font-bold text-lg">{user?.name}</span>
                   <span className="text-sm text-slate-500">
-                    @{user?.username}
+                    @{user?.userName}
                   </span>
                   <span className="text-sm my-1">{user?.bio}</span>
                 </div>
@@ -168,7 +187,7 @@ const ProfilePage = () => {
                   <div className="flex gap-2 items-center">
                     <IoCalendarOutline className="w-4 h-4 text-slate-500" />
                     <span className="text-sm text-slate-500">
-                      Joined July 2021
+                      {memberSinceDate}
                     </span>
                   </div>
                 </div>
@@ -210,7 +229,11 @@ const ProfilePage = () => {
             </>
           )}
 
-          <PostList />
+          <PostList
+            feedType={feedType}
+            username={username}
+            userId={user?._id}
+          />
         </div>
       </div>
     </>
