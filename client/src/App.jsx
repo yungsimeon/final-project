@@ -35,7 +35,6 @@ function App() {
           throw new Error(errorData.message);
         }
         const data = await res.json();
-        console.log("auth user: ", data);
         return data;
       } catch (error) {
         console.log(error);
