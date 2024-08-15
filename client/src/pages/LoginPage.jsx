@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import EggLogo from "../../assets/logo/egg2.png";
+import LoadingSpinner from "../components/LoadingSpinner";
 
 import { MdOutlineMail } from "react-icons/md";
 import { MdPassword } from "react-icons/md";
@@ -93,7 +94,7 @@ const LoginPage = () => {
             />
           </label>
           <button className="btn rounded-full btn-primary text-white">
-            {isPending ? "Loading..." : "Login"}
+            {isPending ? <LoadingSpinner size="sm" /> : "Login"}
           </button>
           {isError && <p className="text-red-500">{error.message}</p>}
         </form>
