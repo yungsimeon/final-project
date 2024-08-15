@@ -62,6 +62,8 @@ router.post("/signup", (req, res, next) => {
 
 router.post("/login", (req, res, next) => {
   const { email, password } = req.body;
+  console.log("Received email:", email);
+  console.log("Received password:", password);
   if (email === "" || password === "") {
     res.status(400).json({ message: "Provide email and password." });
     return;
@@ -87,7 +89,9 @@ router.post("/login", (req, res, next) => {
         res.status(401).json({ message: "Unable to authenticate the user" });
       }
     })
-    .catch((err) => res.status(500).json({ message: "Internal Server Error" }));
+    .catch((err) =>
+      res.status(500).json({ message: "An error occurred during login" })
+    );
 });
 
 router.get("/verify", isAuthenticated, async (req, res) => {

@@ -1,3 +1,4 @@
+const path = require("path");
 require("dotenv").config();
 const express = require("express");
 require("dotenv").config();
@@ -14,6 +15,12 @@ cloudinary.config({
 const app = express();
 require("./config")(app);
 
+if (process.env.NODE_ENV === "production") {
+  const staticPath = path.join(__dirname, "../client/dist");
+  console.log("Static files are served from:", staticPath);
+  app.use(express.static(staticPath));
+}
+
 const indexRoutes = require("./routes/index.routes");
 app.use("/api", indexRoutes);
 
@@ -28,6 +35,12 @@ app.use("/api/posts", isAuthenticated, postRouter);
 
 const notificationRouter = require("./routes/notification.routes");
 app.use("/api/notifications", isAuthenticated, notificationRouter);
+
+if (process.env.NODE_ENV === "production") {
+  app.get("*", (req, res) => {
+    res.sendFile(path.resolve(__dirname, "../client/dist", "index.html"));
+  });
+}
 
 require("./error-handling")(app);
 
